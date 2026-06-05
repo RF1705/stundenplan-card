@@ -985,8 +985,8 @@ const D = (nt = class extends q {
       const l = (a?.time ?? a?.[s] ?? a?.[n] ?? a?.[r] ?? "").toString(), d = yt(l), _ = Array.from({ length: i.length }, (g, f) => {
         const p = (i[f] ?? "").toString();
         return (a?.[p] ?? "").toString();
-      }), u = (a?.start ?? "").toString().trim() || d.start, h = (a?.end ?? "").toString().trim() || d.end;
-      return { time: l, start: u || void 0, end: h || void 0, cells: _ };
+      }), u = (a?.start ?? "").toString().trim() || d.start, h = (a?.end ?? "").toString().trim() || d.end, f = Array.isArray(a?.cell_styles) ? a.cell_styles : [], p = Array.from({ length: i.length }, (g, m) => Xe(f[m])), x = { time: l, start: u || void 0, end: h || void 0, cells: _ };
+      return p.some((g) => !!g) && (x.cell_styles = p), x;
     });
     return o.length ? o : null;
   }

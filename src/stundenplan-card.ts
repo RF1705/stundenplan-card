@@ -1036,8 +1036,8 @@ const v = (D = class extends U {
       const l = (o?.time ?? o?.[tkCfg] ?? o?.[tkAlt1] ?? o?.[tkAlt2] ?? "").toString(), a = mt(l), c = Array.from({ length: s.length }, (u, g) => {
         const O = (s[g] ?? "").toString();
         return (o?.[O] ?? "").toString();
-      }), _ = (o?.start ?? "").toString().trim() || a.start, h = (o?.end ?? "").toString().trim() || a.end;
-      return { time: l, start: _ || void 0, end: h || void 0, cells: c };
+      }), _ = (o?.start ?? "").toString().trim() || a.start, h = (o?.end ?? "").toString().trim() || a.end, g = Array.isArray(o?.cell_styles) ? o.cell_styles : [], O = Array.from({ length: s.length }, (u, W) => De(g[W])), B = { time: l, start: _ || void 0, end: h || void 0, cells: c };
+      return O.some((u) => !!u) && (B.cell_styles = O), B;
     });
     return n.length ? n : null;
   }
@@ -3326,5 +3326,4 @@ export {
   Xt as StundenplanCard,
   ht as StundenplanCardEditor
 };
-
 
