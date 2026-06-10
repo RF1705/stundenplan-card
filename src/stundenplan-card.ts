@@ -1033,11 +1033,11 @@ const v = (D = class extends U {
           time: (o?.time ?? o?.[tkCfg] ?? o?.[tkAlt1] ?? o?.[tkAlt2] ?? "").toString(),
           label: (o.label ?? "Pause").toString()
         };
-      const l = (o?.time ?? o?.[tkCfg] ?? o?.[tkAlt1] ?? o?.[tkAlt2] ?? "").toString(), a = mt(l), c = Array.from({ length: s.length }, (u, g) => {
+      const l = (o?.time ?? o?.[tkCfg] ?? o?.[tkAlt1] ?? o?.[tkAlt2] ?? "").toString(), a = mt(l), c = Array.isArray(o?.cells) ? Array.from({ length: s.length }, (u, g) => (o?.cells?.[g] ?? "").toString()) : Array.from({ length: s.length }, (u, g) => {
         const O = (s[g] ?? "").toString();
         return (o?.[O] ?? "").toString();
-      }), _ = (o?.start ?? "").toString().trim() || a.start, h = (o?.end ?? "").toString().trim() || a.end;
-      return { time: l, start: _ || void 0, end: h || void 0, cells: c };
+      }), _ = Array.isArray(o?.cell_styles) ? Array.from({ length: s.length }, (u, g) => De(o?.cell_styles?.[g])) : [], h = (o?.start ?? "").toString().trim() || a.start, f = (o?.end ?? "").toString().trim() || a.end, p = { time: l, start: h || void 0, end: f || void 0, cells: c };
+      return _.some((u) => !!u) && (p.cell_styles = _), p;
     });
     return n.length ? n : null;
   }
