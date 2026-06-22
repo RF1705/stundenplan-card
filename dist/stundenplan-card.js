@@ -862,13 +862,13 @@ const D = (nt = class extends q {
     const t = nt.getStubConfig(), i = Array.isArray(e.days) && e.days.length ? e.days.map((y) => (y ?? "").toString()) : ["Mo", "Di", "Mi", "Do", "Fr"], s = (Array.isArray(e.rows) ? e.rows : []).map((y) => {
       if (G(y))
         return { break: !0, time: (y.time ?? "").toString(), label: (y.label ?? "Pause").toString() };
-      const A = Array.isArray(y?.cells) ? y.cells : [], T = Array.from({ length: i.length }, (N, B) => (A[B] ?? "").toString()), H = Array.isArray(y?.cell_styles) ? y.cell_styles : [], tt = Array.from({ length: i.length }, (N, B) => oe(H[B])), ut = (y?.time ?? "").toString(), et = yt(ut), Nt = (y?.start ?? "").toString().trim(), jt = (y?.end ?? "").toString().trim(), gt = {
+      const A = Array.isArray(y?.cells) ? y.cells : [], T = Array.from({ length: i.length }, (N, B) => (A[B] ?? "").toString()), H = Array.isArray(y?.cell_styles) ? y.cell_styles : [], tt = Array.from({ length: i.length }, (N, B) => oe(H[B])), B = Array.isArray(y?.cell_times) ? Array.from({ length: i.length }, (N, K) => this.normalizeCellTime(y?.cell_times?.[K])) : [], ut = (y?.time ?? "").toString(), et = yt(ut), Nt = (y?.start ?? "").toString().trim(), jt = (y?.end ?? "").toString().trim(), gt = {
         time: ut,
         start: Nt || et.start || void 0,
         end: jt || et.end || void 0,
         cells: T
       };
-      return tt.some((N) => !!N) && (gt.cell_styles = tt), gt;
+      return tt.some((N) => !!N) && (gt.cell_styles = tt), B.some((N) => !!N) && (gt.cell_times = B), gt;
     }), n = ((e.view_mode ?? "week") + "").toString().trim(), r = n === "rolling" ? "rolling" : "week", a = ((e.display_mode ?? "default") + "").toString().trim(), o = a === "compact" ? "compact" : "default", l = Number(e.days_ahead), d = Number.isFinite(l) ? Math.max(0, Math.min(6, Math.floor(l))) : 0, _ = ((e.rolling_switch_mode ?? t.rolling_switch_mode ?? "midnight") + "").toString().trim(), g = _ === "after_last_lesson" || _ === "fixed_time" ? _ : "midnight", h = ((e.rolling_switch_time ?? t.rolling_switch_time ?? "") + "").toString().trim(), p = ((e.week_mode ?? t.week_mode) + "").toString().trim(), f = p === "kw_parity" || p === "week_map" || p === "off" ? p : "off", u = (() => {
       const y = ((e.source_type ?? "") + "").toString().trim();
       if (y === "manual" || y === "entity" || y === "json" || y === "sensor") return y;
@@ -973,6 +973,16 @@ const D = (nt = class extends q {
     const s = this.hass.states[i], n = (t ?? "").toString().trim(), r = n ? s.attributes?.[n] : s.state;
     return this.parseAnyJson(r);
   }
+  normalizeCellTime(e) {
+    if (e == null) return null;
+    if (typeof e == "string") {
+      const t = e.trim(), i = yt(t);
+      return t ? { time: t, start: i.start, end: i.end } : null;
+    }
+    if (typeof e != "object") return null;
+    const t = (e.time ?? "").toString().trim(), i = yt(t), s = (e.start ?? "").toString().trim() || i.start, n = (e.end ?? "").toString().trim() || i.end;
+    return t || s || n ? { time: t || (s && n ? `${s}-${n}` : ""), start: s || void 0, end: n || void 0 } : null;
+  }
   buildRowsFromArray(e, t) {
     if (!Array.isArray(t)) return null;
     const i = e.days ?? [], s = (e.source_time_key ?? "time").toString().trim(), n = "Stunde", r = "time", a = t.map((o) => {
@@ -985,8 +995,8 @@ const D = (nt = class extends q {
       const l = (o?.time ?? o?.[s] ?? o?.[n] ?? o?.[r] ?? "").toString(), d = yt(l), _ = Array.isArray(o?.cells) ? Array.from({ length: i.length }, (u, m) => (o?.cells?.[m] ?? "").toString()) : Array.from({ length: i.length }, (u, m) => {
         const x = (i[m] ?? "").toString();
         return (o?.[x] ?? "").toString();
-      }), g = Array.isArray(o?.cell_styles) ? Array.from({ length: i.length }, (u, m) => oe(o?.cell_styles?.[m])) : [], h = (o?.start ?? "").toString().trim() || d.start, p = (o?.end ?? "").toString().trim() || d.end, f = { time: l, start: h || void 0, end: p || void 0, cells: _ };
-      return g.some((u) => !!u) && (f.cell_styles = g), f;
+      }), g = Array.isArray(o?.cell_styles) ? Array.from({ length: i.length }, (u, m) => oe(o?.cell_styles?.[m])) : [], h = Array.isArray(o?.cell_times) ? Array.from({ length: i.length }, (u, m) => this.normalizeCellTime(o?.cell_times?.[m])) : [], p = (o?.start ?? "").toString().trim() || d.start, f = (o?.end ?? "").toString().trim() || d.end, v = { time: l, start: p || void 0, end: f || void 0, cells: _ };
+      return g.some((u) => !!u) && (v.cell_styles = g), h.some((u) => !!u) && (v.cell_times = h), v;
     });
     return a.length ? a : null;
   }
@@ -1369,7 +1379,7 @@ const D = (nt = class extends q {
     return d(n);
   }
   renderCardLayout(e, t = null, i = !1) {
-    const s = this._rowsCache, n = this.getHeaderDaysFromEntity(e), r = this.getTodayIndex(e.days ?? [], n), a = ((t ?? this._uiViewMode ?? e.view_mode ?? "week") + "").toString(), o = Number(e.days_ahead), l = Number.isFinite(o) ? Math.max(0, Math.min(6, Math.floor(o))) : 0, d = "1px solid var(--divider-color)", _ = le(e.highlight_today_color ?? "", 0.12), g = le(e.highlight_current_color ?? "", 0.18), h = (e.highlight_current_text_color ?? "").toString().trim(), p = (e.highlight_current_time_text_color ?? "").toString().trim(), f = e.week_mode !== "off", u = f ? this.getActiveWeek(e) : null, m = this.getWeekOffsetValue(e), x = (e.source_type ?? "manual").toString(), S = !i && (e.week_offset_entity ?? "").trim().length > 0, k = S && (x === "entity" || x === "sensor" && (e.week_mode ?? "off") !== "off"), v = n && n.length >= (e.days?.length ?? 0) ? n : null, y = this.getHeaderUpdatedFromEntity(e), A = this.getBaseDate(e), T = this.mondayOfWeek(A), H = this.normalizeTapAction(e.tap_action), tt = i ? "default" : e.display_mode ?? "default", ut = `${tt === "compact" ? "compact" : ""}${!i && H.action !== "none" ? " tappable" : ""}${i ? " popupCard" : ""}`, et = e.show_title !== !1 && (e.title ?? "").toString().trim().length > 0, Nt = this.getTitleStyle(e), jt = et || f || k, gt = a === "rolling" && (i || !k || (m ?? 0) === 0), N = gt ? this.getRollingVisibleSlots(e, l) : [], B = N.length ? N.map((w) => w.orig) : Array.from({ length: e.days?.length ?? 0 }, (w, b) => b), pt = B.map((w) => e.days[w]), L = N.length ? N.map((w) => w.date) : null, Yt = (() => {
+    const s = this._rowsCache, n = this.getHeaderDaysFromEntity(e), r = this.getTodayIndex(e.days ?? [], n), a = ((t ?? this._uiViewMode ?? e.view_mode ?? "week") + "").toString(), o = Number(e.days_ahead), l = Number.isFinite(o) ? Math.max(0, Math.min(6, Math.floor(o))) : 0, d = "1px solid var(--divider-color)", _ = le(e.highlight_today_color ?? "", 0.12), g = le(e.highlight_current_color ?? "", 0.18), h = (e.highlight_current_text_color ?? "").toString().trim(), p = (e.highlight_current_time_text_color ?? "").toString().trim(), f = e.week_mode !== "off", u = f ? this.getActiveWeek(e) : null, m = this.getWeekOffsetValue(e), x = (e.source_type ?? "manual").toString(), S = !i && (e.week_offset_entity ?? "").trim().length > 0, k = S && (x === "entity" || x === "sensor" && (e.week_mode ?? "off") !== "off"), v = n && n.length >= (e.days?.length ?? 0) ? n : null, y = this.getHeaderUpdatedFromEntity(e), A = this.getBaseDate(e), T = this.mondayOfWeek(A), H = this.normalizeTapAction(e.tap_action), tt = i ? "default" : e.display_mode ?? "default", ut = `${tt === "compact" ? "compact" : ""}${!i && H.action !== "none" ? " tappable" : ""}${i ? " popupCard" : ""}`, et = e.show_title !== !1 && (e.title ?? "").toString().trim().length > 0, Nt = this.getTitleStyle(e), jt = et || f || k, gt = a === "rolling" && (i || !k || (m ?? 0) === 0), N = gt ? this.getRollingVisibleSlots(e, l) : [], B = N.length ? N.map((w) => w.orig) : Array.from({ length: e.days?.length ?? 0 }, (w, b) => b), pt = B.map((w) => e.days[w]), L = N.length ? N.map((w) => w.date) : null, Q = N.length ? N[0].orig : r >= 0 ? r : B[0] ?? 0, Yt = (() => {
       const w = /* @__PURE__ */ new Map();
       return !v || !y || v.forEach((b, M) => {
         const J = y[M];
@@ -1440,13 +1450,13 @@ const D = (nt = class extends q {
                     </tr>
                   `;
       }
-      const b = w, M = b.cells ?? [], J = b.cell_styles ?? [], j = !!b.start && !!b.end && this.isNowBetween(b.start, b.end), _t = r >= 0 ? M[r] ?? "" : "", ft = r >= 0 ? this.filterCellText(_t, e) : "", Se = r >= 0 ? wt(ft) : !1, Pt = !(e.free_only_column_highlight && Se), Jt = yt(b.time), ke = !!(Jt.start && Jt.end), Kt = !ke && b.start && b.end ? `${b.start}–${b.end}` : "";
+      const b = w, M = b.cells ?? [], J = b.cell_styles ?? [], D = b.cell_times?.[Q] ?? null, V = D?.time || b.time, X = D?.start || b.start, Z = D?.end || b.end, j = !!X && !!Z && this.isNowBetween(X, Z), _t = r >= 0 ? M[r] ?? "" : "", ft = r >= 0 ? this.filterCellText(_t, e) : "", Se = r >= 0 ? wt(ft) : !1, Pt = !(e.free_only_column_highlight && Se), Jt = yt(V), ke = !!(Jt.start && Jt.end), Kt = !ke && X && Z ? `${X}–${Z}` : "";
       let Rt = `--sp-hl:${g};`;
       return Pt && e.highlight_current && j && (Rt += "box-shadow: inset 0 0 0 9999px var(--sp-hl);"), Pt && j && e.highlight_current_time_text && p && (Rt += `color:${p};`), c`
                   <tr>
                     <td class="time" style=${Rt}>
                       <div class="timeWrap">
-                        <div class="timeSt">${b.time}</div>
+                        <div class="timeSt">${V}</div>
                         ${Kt ? c`<div class="timeHm">${Kt}</div>` : c``}
                       </div>
                     </td>

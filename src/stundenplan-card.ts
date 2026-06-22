@@ -887,13 +887,13 @@ const v = (D = class extends U {
     const e = D.getStubConfig(), s = Array.isArray(t.days) && t.days.length ? t.days.map((h) => (h ?? "").toString()) : ["Mo", "Di", "Mi", "Do", "Fr"], n = (Array.isArray(t.rows) ? t.rows : []).map((h) => {
       if (ct(h))
         return { break: !0, time: (h.time ?? "").toString(), label: (h.label ?? "Pause").toString() };
-      const p = Array.isArray(h?.cells) ? h.cells : [], u = Array.from({ length: s.length }, (w, x) => (p[x] ?? "").toString()), g = Array.isArray(h?.cell_styles) ? h.cell_styles : [], O = Array.from({ length: s.length }, (w, x) => De(g[x])), B = (h?.time ?? "").toString(), y = mt(B), m = (h?.start ?? "").toString().trim(), W = (h?.end ?? "").toString().trim(), b = {
+      const p = Array.isArray(h?.cells) ? h.cells : [], u = Array.from({ length: s.length }, (w, x) => (p[x] ?? "").toString()), g = Array.isArray(h?.cell_styles) ? h.cell_styles : [], O = Array.from({ length: s.length }, (w, x) => De(g[x])), x = Array.isArray(h?.cell_times) ? Array.from({ length: s.length }, (w, y) => this.normalizeCellTime(h?.cell_times?.[y])) : [], B = (h?.time ?? "").toString(), y = mt(B), m = (h?.start ?? "").toString().trim(), W = (h?.end ?? "").toString().trim(), b = {
         time: B,
         start: m || y.start || void 0,
         end: W || y.end || void 0,
         cells: u
       };
-      return O.some((w) => !!w) && (b.cell_styles = O), b;
+      return O.some((w) => !!w) && (b.cell_styles = O), x.some((w) => !!w) && (b.cell_times = x), b;
     }), vmRaw = ((t.view_mode ?? "week") + "").toString().trim(), vm = vmRaw === "rolling" ? "rolling" : "week", displayModeRaw = ((t.display_mode ?? "default") + "").toString().trim(), displayMode = displayModeRaw === "compact" ? "compact" : "default", da = Number(t.days_ahead), daysAhead = Number.isFinite(da) ? Math.max(0, Math.min(6, Math.floor(da))) : 0, rollingSwitchRaw = ((t.rolling_switch_mode ?? e.rolling_switch_mode ?? "midnight") + "").toString().trim(), rollingSwitchMode = rollingSwitchRaw === "after_last_lesson" || rollingSwitchRaw === "fixed_time" ? rollingSwitchRaw : "midnight", rollingSwitchTime = ((t.rolling_switch_time ?? e.rolling_switch_time ?? "") + "").toString().trim(), o = ((t.week_mode ?? e.week_mode) + "").toString().trim(), l = o === "kw_parity" || o === "week_map" || o === "off" ? o : "off", f = (() => {
       const raw = ((t.source_type ?? "") + "").toString().trim();
       if (raw === "manual" || raw === "entity" || raw === "json" || raw === "sensor") return raw;
@@ -1020,6 +1020,16 @@ const v = (D = class extends U {
     const i = this.hass.states[s], n = (e ?? "").toString().trim(), o = n ? i.attributes?.[n] : i.state;
     return this.parseAnyJson(o);
   }
+  normalizeCellTime(t) {
+    if (t == null) return null;
+    if (typeof t == "string") {
+      const e = t.trim(), s = mt(e);
+      return e ? { time: e, start: s.start, end: s.end } : null;
+    }
+    if (typeof t != "object") return null;
+    const e = (t.time ?? "").toString().trim(), s = mt(e), i = (t.start ?? "").toString().trim() || s.start, n = (t.end ?? "").toString().trim() || s.end;
+    return e || i || n ? { time: e || (i && n ? `${i}-${n}` : ""), start: i || void 0, end: n || void 0 } : null;
+  }
   buildRowsFromArray(t, e) {
     if (!Array.isArray(e)) return null;
     const s = t.days ?? [];
@@ -1036,8 +1046,8 @@ const v = (D = class extends U {
       const l = (o?.time ?? o?.[tkCfg] ?? o?.[tkAlt1] ?? o?.[tkAlt2] ?? "").toString(), a = mt(l), c = Array.isArray(o?.cells) ? Array.from({ length: s.length }, (u, g) => (o?.cells?.[g] ?? "").toString()) : Array.from({ length: s.length }, (u, g) => {
         const O = (s[g] ?? "").toString();
         return (o?.[O] ?? "").toString();
-      }), _ = Array.isArray(o?.cell_styles) ? Array.from({ length: s.length }, (u, g) => De(o?.cell_styles?.[g])) : [], h = (o?.start ?? "").toString().trim() || a.start, f = (o?.end ?? "").toString().trim() || a.end, p = { time: l, start: h || void 0, end: f || void 0, cells: c };
-      return _.some((u) => !!u) && (p.cell_styles = _), p;
+      }), _ = Array.isArray(o?.cell_styles) ? Array.from({ length: s.length }, (u, g) => De(o?.cell_styles?.[g])) : [], h = Array.isArray(o?.cell_times) ? Array.from({ length: s.length }, (u, g) => this.normalizeCellTime(o?.cell_times?.[g])) : [], f = (o?.start ?? "").toString().trim() || a.start, p = (o?.end ?? "").toString().trim() || a.end, x = { time: l, start: f || void 0, end: p || void 0, cells: c };
+      return _.some((u) => !!u) && (x.cell_styles = _), h.some((u) => !!u) && (x.cell_times = h), x;
     });
     return n.length ? n : null;
   }
@@ -1577,6 +1587,7 @@ getRowsResolved(t) {
         idxs = rollingSlots.length ? rollingSlots.map((y) => y.orig) : Array.from({ length: t.days?.length ?? 0 }, (y, m) => m),
         daysVis = idxs.map((y) => t.days[y]),
         rollingDates = rollingSlots.length ? rollingSlots.map((y) => y.date) : null,
+        focusDayIndex = rollingSlots.length ? rollingSlots[0].orig : s >= 0 ? s : idxs[0] ?? 0,
         updMap = (() => {
           const y = /* @__PURE__ */ new Map();
           if (!g || !upd) return y;
@@ -1646,15 +1657,15 @@ getRowsResolved(t) {
                     </tr>
                   `;
       }
-      const m = y, W = m.cells ?? [], b = m.cell_styles ?? [], w = !!m.start && !!m.end && this.isNowBetween(m.start, m.end), x = s >= 0 ? W[s] ?? "" : "", te = s >= 0 ? this.filterCellText(x, t) : "", ee = s >= 0 ? yt(te) : !1, pt = !(!!t.free_only_column_highlight && ee), __rng = mt(m.time),
+      const m = y, W = m.cells ?? [], b = m.cell_styles ?? [], cellTime = m.cell_times?.[focusDayIndex] ?? null, displayTime = cellTime?.time || m.time, displayStart = cellTime?.start || m.start, displayEnd = cellTime?.end || m.end, w = !!displayStart && !!displayEnd && this.isNowBetween(displayStart, displayEnd), x = s >= 0 ? W[s] ?? "" : "", te = s >= 0 ? this.filterCellText(x, t) : "", ee = s >= 0 ? yt(te) : !1, pt = !(!!t.free_only_column_highlight && ee), __rng = mt(displayTime),
       __timeHasRange = !!(__rng.start && __rng.end),
-      Et = (!__timeHasRange && m.start && m.end) ? `${m.start}–${m.end}` : "";
+      Et = (!__timeHasRange && displayStart && displayEnd) ? `${displayStart}–${displayEnd}` : "";
       let gt = `--sp-hl:${o};`;
       return pt && t.highlight_current && w && (gt += "box-shadow: inset 0 0 0 9999px var(--sp-hl);"), pt && w && t.highlight_current_time_text && a && (gt += `color:${a};`), d`
                   <tr>
                     <td class="time" style=${gt}>
                       <div class="timeWrap">
-                        <div class="timeSt">${m.time}</div>
+                        <div class="timeSt">${displayTime}</div>
                         ${Et ? d`<div class="timeHm">${Et}</div>` : d``}
                       </div>
                     </td>
@@ -3326,5 +3337,3 @@ export {
   Xt as StundenplanCard,
   ht as StundenplanCardEditor
 };
-
-
